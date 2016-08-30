@@ -3,26 +3,28 @@ Use ArcGIS (arcpy package) to calculate area of solar radiation on DEM (TIFF for
 
 Date: 08/30/2016
 
-Author: Patrick Claflin
-# Scenario: 
-   We need to calculate all the possible intersections between 1,960,371 entry poly-line feature class and a 258 point feature class. 
-# Problem: 
-   There are too many poly-line observations for this process to be fast or efficient on one machine. Many times the ArcGIS intersect function will run for days and then crash.
-# Solution: 
-1) Use a python script and ArcGIS to break up the poly-line feature class into separate feature classes. Each new, smaller, feature class will contain at most 5000 poly-line entries. 
+Authors: Patrick Claflin, Amanda Farthing
+## Scenario: 
+   We needed to calculate the area of solar radiation for the entire state of South Carolina using ArcGIS's 
+## Problem: 
+   The time it takes to cacluate insolation is extreme for large raster images such as an entire state. It can take days to complete a calcuation once.
+## Solution: 
+We used an "embarassinlg parallel" processing system called HTCondor to break up and distribute the calculations among multiple nodes. This concurrent process drastically decreased the time it to to calculate insolation for the entire state of SC. The entire process was broken into the following 3 steps:
+
+1) Submit a python script within a Condor Submission file. This python program would split the raster image into multiple parts and zip each set of files for distributed processing. We used the arcpy tool [SplitRaster_management()](http://desktop.arcgis.com/en/arcmap/latest/tools/data-management-toolbox/split-raster.htm)
 
 2) Submit multiple "jobs" through HTCondor. Each "job" will process one of the smaller poly-line feature classes and then return the results to the owner.
 
 3) Use a python script and ArcGIS to merge the resultant feature classes together to create one large feature class of intersections.
   
-# Files needed for this process
-## Python script files:
+## Files needed for this process
+### Python script files:
 1) split_feature_class.py - used to split the larger feature class into smaller feature classes.
 
 2) intersectStation.py - used to calculate intersections between point feature class and poly-line feature class.
 
 3) merge_feature_classes.py - used to merge all the smaller feature classes into one feature class.
 
-## Condor submission files:
+### Condor submission files:
 1) IntersectStations.sub
  
