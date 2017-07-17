@@ -1,0 +1,105 @@
+# This is a HTCondor submit process.
+#
+# Parameters: We can use the parameter names by specifying a 
+#             dollar sign next to the parameter name within 
+#             parenthesis. 
+#             to declare a parameter: 'myparm = YES'
+#             to use a parameter: '$(myparm)'
+# 
+# demFilenamePrefix - The prefix to all the DEM files you want to 
+#                     submit through Condor.
+# demPathname       - The pathname where all the DEM files reside.
+# scriptDir         - The initial directory where Condor expects 
+#                     to find all input files.
+# scriptName        - Name of the python script that will be invoked 
+#                     on a Condor node.
+# overlapValue      - The amount in meters that the input DEM 
+#                     files overlap one another. We need this value
+#                     for the clipping that takes place in the python
+#                     script.
+# filename          - This is a predefined variable that HTCondor 
+#                     creates. It contains the full path and filename 
+#                     of the file that is specified in the "queue"
+#                     statement.
+demFilenamePrefix = o_
+scriptName        = area_of_solar_radiation.py
+overlapValue      = 100
+demPathname	  = split_data
+
+#######################################################################
+# 
+# You shouldn't have to modify anything below this line....
+# 
+#######################################################################
+
+# The "universe" parameter allows you to specify a runtime environment 
+# that you want the job to run under. "vanilla" is the default value 
+# and usually a safest to use when environment isn't known. The 
+# "vanilla" value doesn't allow a job to be checkpointed or migrated. 
+# The job must run to completion on a node or it will need to be rerun.
+universe = vanilla
+
+# The "executable" parameter specifys where the execution file resides.
+# In this case we are running the python Interpreter "python.exe".
+executable = C:\Python27\ArcGIS10.5\python.exe
+
+# The "transfer_executable" parameter allows you to transfer the 
+# program you want to run to the Condor node where the job will run. 
+# For this process we specify "FALSE" because we expect the "python.exe" 
+# file to reside on every node and at the exact path specified in the 
+# "executable" parameter on every node to which we submit this job.
+transfer_executable = false
+
+# The "requirements" parameter allows you to specify what type of 
+# machine architecture and OS the program will run under. We also 
+# created a flag called "HAS_ARCGIS" that allows you to say you only 
+# want machines with ArcGIS Desktop installed to be eligbible for 
+# selection. Also, we only want to use the computers in Cooper since
+# they have the latest version of ArcGIS and are more powerful.
+
+requirements = Arch=="X86_64" && OpSys=="WINDOWS" && HAS_ARCGIS && (Machine != "BARRB107-04.CAMPUS.CU.CLEMSON.EDU")
+		
+
+# The "arguments" parameter says what arguments you want to pass to the 
+# executable file. Since the executable file is the python interpreter 
+# we need to pass, as one of the arguments, the python script we want 
+# to run. The arguments after the python script are arguments for the 
+# python script itself. 
+# $Fn() is a macro HTCondor allows which returns the filename without
+# the path or extension.
+# ie. $(filename) = C:\myfiles\file1.txt - $Fn(filename) = file1
+
+tifFilename = $Fn(filename).tif
+arguments = $(scriptName) $(tifFilename) $(overlapValue)
+
+# The "transfer_input_files" parameter allows you to specify other 
+# addition files to be transferred to the node that might be needed to 
+# run the job successfully.
+transfer_input_files = $(scriptName),$(filename)
+
+# The "should_transfer_files" parameter allows you to state you want 
+# all files specified on the "transfer_input_files" parameter to be sent 
+# to the remote node. 
+should_transfer_files = YES
+
+# The "when_to_transfer_output" parameter says you want to transfer any 
+# files, that were created on the remote node, back to the submit machine
+# after the job is completed.
+when_to_transfer_output = ON_EXIT
+
+# The "initialdir" parameter states the path where the input files will 
+# be found. In this case the path is relative to the directory from where 
+# the submit process file was submitted. 
+#initialdir = 
+
+# The "output", "error", and "log" parameters specify the path, on the 
+# submitting machinge, where the logs will be created and updated. In 
+# this case it's relative to where the "initialdir" value.
+output = logs\\output_$Fn(filename).txt
+error  = logs\\error_$Fn(filename).txt
+log    = logs\\log.txt
+
+# The Queue command initiates the submission to the remote nodes. In 
+# this case we're going to submit a Condor job for each filename that 
+# matches the pattern "$(demPathname)\$(demFilenamePrefix)*.zip"
+queue filename matching files $(demPathname)\$(demFilenamePrefix)*.zip
